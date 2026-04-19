@@ -157,15 +157,27 @@ def run_code():
                 clean_err = compile_process.stderr.replace(temp_dir + "/", "")
                 return jsonify({"output": "Compilation Error:\n" + clean_err}), 200
                 
-            # Execute Binary with Popen to handle stdin without immediate EOF
+            # Execute Binary with Popen
             process = subprocess.Popen(
                 [output_bin],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                bufsize=1 # Line buffered
+                bufsize=1
             )
+            
+            import time
+            import os
+
+            # Set pipes to non-blocking to allow reading without hanging
+            os.set_blocking(process.stdout.fileno(), False)
+            os.set_blocking(process.stderr.fileno(), False)
+
+            stdout_data = ""
+            stderr_data = ""
+            start_time = time.time()
+            timeout = 2
             
             try:
                 # Send the provided input but DO NOT close stdin yet
@@ -173,19 +185,46 @@ def run_code():
                     process.stdin.write(stdin_input)
                     process.stdin.flush()
                 
-                # Now we close stdin if we want it to finish, OR we wait and see if it times out
-                # In this stateless model, we actually SHOULD close it if we want to know if it's DONE.
-                # But wait, if we close it, it EOFs.
-                # If we DON'T close it, it might hang waiting for more.
+                # Poll for completion or timeout
+                while time.time() - start_time < timeout:
+                    # Read available stdout
+                    try:
+                        chunk = process.stdout.read()
+                        if chunk: stdout_data += chunk
+                    except (IOError, TypeError):
+                        pass
+                        
+                    # Read available stderr
+                    try:
+                        chunk = process.stderr.read()
+                        if chunk: stderr_data += chunk
+                    except (IOError, TypeError):
+                        pass
+
+                    if process.poll() is not None:
+                        break
+                    time.sleep(0.05)
+                else:
+                    # Timeout reached
+                    if process.poll() is None:
+                        # Process still alive, likely waiting for more input
+                        process.terminate()
+                        # Final quick read after termination
+                        time.sleep(0.05)
+                        try:
+                            chunk = process.stdout.read()
+                            if chunk: stdout_data += chunk
+                        except: pass
+                        
+                        return jsonify({
+                            "output": stdout_data if stdout_data else "// Waiting for input...",
+                            "waiting_for_input": True
+                        }), 200
                 
-                # Compromise: Give it a bit of time to finish with current input.
-                # If it doesn't finish, we assume it's waiting for more OR in an infinite loop.
-                stdout, stderr = process.communicate(timeout=2)
-                
-                # If it finished normally:
-                final_output = stdout if stdout else ""
-                if stderr:
-                    clean_run_err = stderr.replace(temp_dir + "/", "")
+                # If we are here, the process finished
+                final_output = stdout_data
+                if stderr_data:
+                    clean_run_err = stderr_data.replace(temp_dir + "/", "")
                     final_output += "\n[Error Output]:\n" + clean_run_err
                     
                 if not final_output.strip():
@@ -193,20 +232,10 @@ def run_code():
                     
                 return jsonify({"output": final_output}), 200
 
-            except subprocess.TimeoutExpired:
-                # It timed out! This means it's likely waiting for input.
-                # We need to capture whatever it has produced so far.
-                process.terminate()
-                stdout, stderr = process.communicate()
-                
-                partial_output = stdout if stdout else ""
-                if partial_output:
-                    return jsonify({
-                        "output": partial_output,
-                        "waiting_for_input": True
-                    }), 200
-                
-                return jsonify({"output": "Error: Execution Timed Out. Did you write an infinite loop?"}), 200
+            except Exception as e:
+                if process.poll() is None:
+                    process.kill()
+                raise e
             
     except Exception as e:
         return jsonify({"output": f"Server Error: {str(e)}"}), 500
