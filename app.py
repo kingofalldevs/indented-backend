@@ -189,16 +189,16 @@ def run_code():
                 while time.time() - start_time < timeout:
                     # Read available stdout
                     try:
-                        chunk = process.stdout.read()
-                        if chunk: stdout_data += chunk
-                    except (IOError, TypeError):
+                        chunk = os.read(process.stdout.fileno(), 4096)
+                        if chunk: stdout_data += chunk.decode('utf-8', errors='replace')
+                    except (BlockingIOError, IOError):
                         pass
                         
                     # Read available stderr
                     try:
-                        chunk = process.stderr.read()
-                        if chunk: stderr_data += chunk
-                    except (IOError, TypeError):
+                        chunk = os.read(process.stderr.fileno(), 4096)
+                        if chunk: stderr_data += chunk.decode('utf-8', errors='replace')
+                    except (BlockingIOError, IOError):
                         pass
 
                     if process.poll() is not None:
@@ -212,8 +212,8 @@ def run_code():
                         # Final quick read after termination
                         time.sleep(0.05)
                         try:
-                            chunk = process.stdout.read()
-                            if chunk: stdout_data += chunk
+                            chunk = os.read(process.stdout.fileno(), 4096)
+                            if chunk: stdout_data += chunk.decode('utf-8', errors='replace')
                         except: pass
                         
                         return jsonify({
