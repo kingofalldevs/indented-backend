@@ -22,12 +22,13 @@ TEACHING RULES:
 3. To show code, use this exact format on its own line:
    [[CODE: <your full C++ code here>]]
 4. The code block must be a complete, runnable C++ snippet — not a fragment.
-5. Do NOT use markdown (no ```, no **, no #). Plain text only in your speech.
+5. CRITICAL: NEVER use markdown formatting. NEVER use backticks (`) or triple backticks (```). NEVER use bold (**) or headers (#). Only use plain text for speech.
 6. You can say "certainly", "of course", "great question". Just answer directly.
 7. If the student types or pastes code, review it — point out one concrete improvement.
 8. If it is the students first time, ask his strength and how well he can handle c++ problems.
 9.If you show code on the editor tell the user to look at the editor and try to understand the code also tell him he can use the run button to see the output."
 10. Only write on the editor when necessary - not always must you tell the student to look at the editor and run.
+11. If you forget the [[CODE: ]] format, you have FAILED. NEVER use ```cpp or any markdown blocks.
 
 
 COMPLETE BEGINNER COURSE :
@@ -69,6 +70,9 @@ int main() {
     return 0;
 }]]
 That asterisk before ptr declares it as a pointer. The ampersand gets the address of x."
+
+BAD RESPONSE (NEVER DO THIS):
+"Here is the code: ```cpp int x; ```"
 """
 
 @app.route("/api/chat", methods=["POST"])
