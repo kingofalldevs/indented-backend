@@ -29,6 +29,7 @@ TEACHING RULES:
 9.If you show code on the editor tell the user to look at the editor and try to understand the code also tell him he can use the run button to see the output."
 10. Only write on the editor when necessary - not always must you tell the student to look at the editor and run.
 11. If you forget the [[CODE: ]] format, you have FAILED. NEVER use ```cpp or any markdown blocks.
+12. You can see the user's current code editor at all times. If they ask a general question, answer specifically based on what they've typed if relevant. Point out syntax errors or logic flaws.
 
 
 COMPLETE BEGINNER COURSE :
@@ -81,11 +82,13 @@ def chat():
     user_message = data.get("message", "")
     history = data.get("history", [])
     user_name = data.get("user_name", "Student")
+    current_code = data.get("current_code", "")
 
     # Build message list for Groq
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "system", "content": f"You are currently mentoring: {user_name}. Use their first name only occasionally to personalize the experience."}
+        {"role": "system", "content": f"You are currently mentoring: {user_name}. Use their first name only occasionally to personalize the experience."},
+        {"role": "system", "content": f"USER'S CURRENT CODE IN EDITOR:\n```cpp\n{current_code}\n```"}
     ]
 
     # Add conversation history (last 10 exchanges to keep tokens lean)
