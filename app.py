@@ -170,7 +170,14 @@ def run_code():
                 
             return jsonify({"output": final_output}), 200
             
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as e:
+        # If it timed out, check if there was partial output (like a prompt)
+        partial_output = e.stdout.decode() if e.stdout else ""
+        if partial_output:
+            return jsonify({
+                "output": partial_output,
+                "waiting_for_input": True
+            }), 200
         return jsonify({"output": "Error: Execution Timed Out. Did you write an infinite loop?"}), 200
     except Exception as e:
         return jsonify({"output": f"Server Error: {str(e)}"}), 500
