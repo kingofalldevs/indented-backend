@@ -1,5 +1,7 @@
 import os
-from flask import Flask, request, Response, stream_with_context
+import subprocess
+import tempfile
+from flask import Flask, request, Response, stream_with_context, jsonify
 from flask_cors import CORS
 from groq import Groq
 from dotenv import load_dotenv
@@ -11,8 +13,8 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-SYSTEM_PROMPT = """You are Indie — a sharp, calm, and technically precise C++ mentor.
-Your personality: confident, direct, no fluff. You think like a senior c++ teacher.
+SYSTEM_PROMPT = """You are Indie — a sharp, calm, and technically precise C++ mentor who acts like chatgpt.
+Your personality: confident, direct, when user greets, respond warmly. You think like a senior c++ teacher.
 
 TEACHING RULES:
 1. Keep spoken responses SHORT — 2 to 4 sentences max. You speak like a human be soft and ask a question after every answer you give to the student, not a textbook.
@@ -116,7 +118,62 @@ def chat():
 
 @app.route("/api/health", methods=["GET"])
 def health():
-    return {"status": "Indie online", "model": "llama-3.3-70b-versatile"}
+    return {"status": "Indie online", "model": "llama-3.1-8b-instant"}
+
+@app.route("/api/run", methods=["POST"])
+def run_code():
+    data = request.json
+    code = data.get("code", "")
+    stdin_input = data.get("stdin", "")
+    
+    if not code:
+        return jsonify({"output": "No code provided."}), 400
+        
+    try:
+        # Secure isolation via Temporary Directory
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_file = os.path.join(temp_dir, "main.cpp")
+            output_bin = os.path.join(temp_dir, "main")
+            
+            with open(source_file, "w") as f:
+                f.write(code)
+                
+            # Compile Code
+            compile_process = subprocess.run(
+                ["g++", source_file, "-o", output_bin],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            if compile_process.returncode != 0:
+                clean_err = compile_process.stderr.replace(temp_dir + "/", "")
+                return jsonify({"output": "Compilation Error:\n" + clean_err}), 200
+                
+            # Execute Binary
+            run_process = subprocess.run(
+                [output_bin],
+                input=stdin_input,
+                capture_output=True,
+                text=True,
+                timeout=3
+            )
+            
+            # Combine stdout and stderr correctly
+            final_output = run_process.stdout
+            if run_process.stderr:
+                clean_run_err = run_process.stderr.replace(temp_dir + "/", "")
+                final_output += "\n[Error Output]:\n" + clean_run_err
+                
+            if not final_output.strip():
+                final_output = "// Program ran with no output"
+                
+            return jsonify({"output": final_output}), 200
+            
+    except subprocess.TimeoutExpired:
+        return jsonify({"output": "Error: Execution Timed Out. Did you write an infinite loop?"}), 200
+    except Exception as e:
+        return jsonify({"output": f"Server Error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5051))
