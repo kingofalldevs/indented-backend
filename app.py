@@ -1,6 +1,7 @@
 import os
 import subprocess
 import tempfile
+import time
 from flask import Flask, request, Response, stream_with_context, jsonify
 from flask_cors import CORS
 from groq import Groq
@@ -167,9 +168,6 @@ def run_code():
                 bufsize=1
             )
             
-            import time
-            import os
-
             # Set pipes to non-blocking to allow reading without hanging
             os.set_blocking(process.stdout.fileno(), False)
             os.set_blocking(process.stderr.fileno(), False)
@@ -243,4 +241,4 @@ def run_code():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5051))
     print(f"🔵 Indie backend starting on port {port}...")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=True)
