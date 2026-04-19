@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": ["https://indented.web.app", "http://localhost:3001"]}})
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -119,5 +119,6 @@ def health():
     return {"status": "Indie online", "model": "llama-3.3-70b-versatile"}
 
 if __name__ == "__main__":
-    print("🔵 Indie backend starting on port 5051...")
-    app.run(host="0.0.0.0", port=5051, debug=False)
+    port = int(os.environ.get("PORT", 5051))
+    print(f"🔵 Indie backend starting on port {port}...")
+    app.run(host="0.0.0.0", port=port, debug=False)
