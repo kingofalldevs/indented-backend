@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["https://indented.web.app", "http://localhost:3001"]}})
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
