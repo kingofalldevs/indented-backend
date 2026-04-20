@@ -42,10 +42,15 @@ def chat():
     user_name = data.get("user_name", "Student")
     current_code = data.get("current_code", "")
 
+    # Format code with line numbers to help Nova count accurately
+    numbered_code = ""
+    if current_code:
+        numbered_code = "\n".join([f"{i+1}: {line}" for i, line in enumerate(current_code.split('\n'))])
+
     # Build message list for Groq
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "system", "content": f"USER'S CURRENT CODE IN EDITOR:\n{current_code}"}
+        {"role": "system", "content": f"USER'S CURRENT CODE IN EDITOR:\n{numbered_code}"}
     ]
 
     # Add conversation history (last 10 exchanges)
