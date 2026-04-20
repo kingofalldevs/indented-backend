@@ -47,14 +47,16 @@ def chat():
     if current_code:
         numbered_code = "\n".join([f"{i+1}: {line}" for i, line in enumerate(current_code.split('\n'))])
 
+    # Combine system prompt and the current code context into one message to prevent leakage
+    context_message = f"{SYSTEM_PROMPT}\n\n### USER'S CURRENT CODE (FOR YOUR REFERENCE ONLY - DO NOT REPEAT):\n{numbered_code}\n###\n\nRemember: Only provide the hint and the [[ERROR: line]] tag. Never repeat the code above."
+
     # Build message list for Groq
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "system", "content": f"USER'S CURRENT CODE IN EDITOR:\n{numbered_code}"}
+        {"role": "system", "content": context_message}
     ]
 
-    # Add conversation history (last 10 exchanges)
-    for msg in history[-10:]:
+    # Add conversation history (last 5 exchanges to keep it very focused)
+    for msg in history[-5:]:
         role = msg.get("role", "user")
         content = msg.get("content", "")
         if role in ("user", "assistant") and content:
