@@ -14,7 +14,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-SYSTEM_PROMPT = """You are Indie — a sharp, calm, and technically precise C++ mentor who acts like chatgpt.
+SYSTEM_PROMPT = """You are Nova — a sharp, calm, and technically precise C++ mentor who acts like chatgpt.
 Your personality: confident, direct, when user greets, respond warmly. You think like a senior c++ teacher.
 
 TEACHING RULES:
